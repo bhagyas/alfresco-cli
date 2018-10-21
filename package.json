@@ -1,0 +1,31 @@
+{
+  "name": "alfresco-cli",
+  "version": "1.0.0",
+  "description": "Command line access and Alfresco operations",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "alfresco-js-api": "^2.6.0",
+    "alfresco-js-api-node": "^2.6.0",
+    "ascii-table": "0.0.9",
+    "chalk": "^2.4.1",
+    "cli-progress": "^2.1.0",
+    "commander": "^2.19.0",
+    "figlet": "^1.2.1",
+    "flat": "^4.1.0",
+    "fs": "0.0.1-security",
+    "inquirer": "^6.2.0",
+    "shelljs": "^0.8.2",
+    "ts-node": "^7.0.1",
+    "vorpal": "^1.12.0"
+  },
+  "devDependencies": {
+    "typescript": "^3.1.3"
+  }
+}
