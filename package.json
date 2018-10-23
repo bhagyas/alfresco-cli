@@ -1,6 +1,6 @@
 {
   "name": "alfresco-cli",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Command line access and Alfresco operations",
   "main": "index.js",
   "bin": "index.js",
@@ -8,7 +8,7 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Bhagya Nirmaan Silva",
   "license": "MIT",
   "dependencies": {
     "alfresco-js-api": "^2.6.0",
