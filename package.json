@@ -1,7 +1,7 @@
 {
   "name": "alfresco-cli",
   "version": "1.0.5",
-  "description": "Command line interface for Alfresco",
+  "description": "Alfresco CLI - Command line interface for Alfresco",
   "main": "index.js",
   "bin": "index.js",
   "scripts": {
