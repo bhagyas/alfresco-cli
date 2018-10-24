@@ -7,6 +7,11 @@ Interact with the Alfresco repository with an interactive command line.
 - Alfresco Developers and Architects
 
 == Installation
+
+=== From NPM
+- Run `npm install -g alfresco-cli`
+
+=== From GitHub
 - Clone the repository
 - Install using `npm install -g && npm link`
 
@@ -23,7 +28,11 @@ Use `cd <nodeId>`, where nodeId is the node ID of the nodeRef you want to change
 
 === Listing contents (chldren) within a node
 
-Use `ls` or `ls <nodeId>` to list contents within a node. 
+Use `ls` or `ls <nodeId>` to list contents within a node.
+
+=== Uploading files
+
+Use `upload <filePath> [destinationNodeId]` to upload new files to Alfresco.
 
 === Search for contents 
 
@@ -39,11 +48,22 @@ Use `search <query> [language]` to search for contents.
 - Download files [TBD]
 - View Metadata
 
+=== Aliases Reference
+
+You can use the following aliases within commands.
+
+
+- `.` - current folder/content
+- `..` - parent folder/content
+
 == License 
 MIT License
 
 == Author
 - Bhagya Nirmaan Silva (about.me/bhagyas)
+
+== Development Sponsors
+- http://loftux.com[Loftux AB]
 
 == Privacy Policy
 
@@ -51,3 +71,13 @@ There are no analytics gathered upon the use of the tool. However, the author re
 
 == Contributors
 None
+
+== Version History
+
+* 1.1 - 20181024
+- Converted the code to Typescript
+- Added support for node name as an alias for nodeId when referred from a valid context.
+- Added `create user`, `create site` commands.
+- Added support for `.` and `..` aliases.
+* 1.0 - 20181023
+- Initial release

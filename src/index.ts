@@ -163,7 +163,7 @@ vorpal.command('list parents [nodeRef]', 'Lists parents for a given nodeRef.')
     );
 
 vorpal
-    .command('upload-file <destinationNodeRef> <filePath> [relativePath] [autoRename]', 'Uploads a file to the given destination.')
+    .command('upload <filePath> <destinationNodeRef> [relativePath] [autoRename]', 'Uploads a file to the given destination.')
     .option('-arn', "--autoRename", "Automatically rename the file if a similarly named file exists.")
     .action(function (args, callback) {
         let ongoing = false;
@@ -381,12 +381,11 @@ async function getParent(nodeRef){
     return await alfrescoJsApi.core.childAssociationsApi.listParents(_nodeRef)
         .then(function(data) {
             vorpal.log('API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
-            vorpal.log(JSON.stringify(data));
             let element = data.list.entries[0].entry;
-            vorpal.log(element.id);
             return element.id;
         }).catch(data => {
             vorpal.log(data);
+            throw new Error("Unable to find parent.")
         });
 }
 
@@ -492,7 +491,7 @@ async function getNodeRef(nodeRef: string) {
                 }
             }).catch( ()=> {
                 return alfrescoJsApi.nodes.getNodeInfo(nodeRef).then(function (data) {
-                    vorpal.log('This is the name' + data.name );
+                    vorpal.log('name: ' + data.name );
                     return nodeRef;
                 }, function (error) {
                     vorpal.log('This node does not exist');
