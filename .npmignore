@@ -76,3 +76,4 @@ typings/
 
 bin
 md-gen.sh
+.idea
