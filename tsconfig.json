@@ -1,19 +1,14 @@
 {
   "compilerOptions": {
-  "target": "es5",
-  "lib": [
-    "es2017","es2015","dom","es6"
+    "outDir": "./bin",
+    "allowJs": true,
+    "target": "es5",
+    "lib": ["es2015"]
+  },
+  "include": [
+    "./src/**/*"
   ],
-  "module": "commonjs",
-  "outDir": "./",
-  "sourceMap": false,
-  "strict": true
-},
-"include": [
-  "**.ts"
-  ],
-"exclude": [
-  "node_modules",
-  "firefunctions"
+  "exclude": [
+    "node_modules"
   ]
 }

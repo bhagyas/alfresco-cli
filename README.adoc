@@ -13,6 +13,23 @@ Interact with the Alfresco repository with an interactive command line.
 == Usage
 - Call `alfresco-cli` from your terminal.
 
+=== Logging in
+
+Type `login --help` to read the help on logging in to the system and fetch an authentication token for the CLI.
+
+=== Changing into a node
+
+Use `cd <nodeId>`, where nodeId is the node ID of the nodeRef you want to change to.
+
+=== Listing contents (chldren) within a node
+
+Use `ls` or `ls <nodeId>` to list contents within a node. 
+
+=== Search for contents 
+
+Use `search <query> [language]` to search for contents. 
+
+
 === Commands and Operations
 - Login
 - Logout
