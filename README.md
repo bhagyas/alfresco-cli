@@ -18,6 +18,16 @@
 
 -   Install using `npm install -g && npm link`
 
+## Features
+
+-   Performs Alfresco operations from the terminal.
+
+-   Autocompletes node names for valid operations.
+
+-   Maintains a session with a valid token, automatically persists within terminal sessions.
+
+-   Maintains a local command history
+
 ## Usage
 
 -   Call `alfresco-cli` from your terminal.
@@ -100,7 +110,7 @@ None
 
     -   Added support for node name as an alias for nodeId when referred from a valid context.
 
-    -   Added `create user`, `create site`, `cd-site` commands.
+    -   Added `create user`, `create site`, `cd-site`, `search` commands.
 
     -   Added support for `.` and `..` aliases.
 

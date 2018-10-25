@@ -15,8 +15,16 @@ Interact with the Alfresco repository with an interactive command line.
 - Clone the repository
 - Install using `npm install -g && npm link`
 
+== Features
+- Performs Alfresco operations from the terminal.
+- Autocompletes node names for valid operations.
+- Maintains a session with a valid token, automatically persists within terminal sessions.
+- Maintains a local command history
+
+
 == Usage
 - Call `alfresco-cli` from your terminal.
+
 
 === Logging in
 
@@ -74,6 +82,8 @@ None
 
 == Version History
 
+* 1.2.1 - 20181025
+- Added `list versions` command.
 * 1.2 - 20181025
 - [MAJOR] Adding folder name auto completion
 - Added `delete` command with support for deleting child nodes.
@@ -81,7 +91,7 @@ None
 * 1.1 - 20181024
 - Converted the code to Typescript
 - Added support for node name as an alias for nodeId when referred from a valid context.
-- Added `create user`, `create site`, `cd-site` commands.
+- Added `create user`, `create site`, `cd-site`, `search` commands.
 - Added support for `.` and `..` aliases.
 
 * 1.0 - 20181023

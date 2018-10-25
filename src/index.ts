@@ -71,6 +71,7 @@ vorpal
 
 
 vorpal.command('change site <siteName>', 'Change into a site.')
+    .alias('cd-site')
     .action((args, callback) => {
         alfrescoJsApi.core.sitesApi.getSites().then(function (data) {
             vorpal.log('API called successfully. Returned data for ' + data.list.entries.length + ' sites');
@@ -258,7 +259,7 @@ vorpal.command('view-metadata [nodeRef] [property]', "Shows metadata for the sel
         callback();
     });
 
-vorpal.command('move-node <nodeRef> <destinationNodeRef>', "Moves a node to a destination.")
+vorpal.command('move <nodeRef> <destinationNodeRef>', "Moves a node to a destination.")
     .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         alfrescoJsApi.nodes.moveNode(args[0])
@@ -293,7 +294,6 @@ vorpal.command('create site <siteId> [title] [description]', "Creates a site (Vi
 
 vorpal.command("create person <userName> <password> [email] [firstName] [lastName]", "Creates a new user.")
     .action((args, callback) => {
-        //alfresco JS API has no endpoint that can serve this request.
         let self = this;
         var person: PersonBodyCreate = {
             id: args.userName,
@@ -314,6 +314,20 @@ vorpal.command("create person <userName> <password> [email] [firstName] [lastNam
         });
         callback();
     });
+
+vorpal.command('list versions <nodeRef>')
+    .action((args, callback) => {
+        getNodeRef(args.nodeRef).then(nodeId => {
+            alfrescoJsApi.core.versionsApi.listVersionHistory(nodeId, {}).then(function(data) {
+                printNodeList(data.list.entries);
+                callback();
+            }, function(error) {
+                console.error(error);
+                callback();
+            })
+        })
+    });
+
 
 vorpal.command("create folder <folderName> <destinationNodeRef> [path]", "Create folder at the destination.")
     .option('-p', "--path", "Relative path from the destination nodeRef.")
@@ -379,7 +393,7 @@ vorpal.command('search <query> [language]', "Searches the repostitory for conten
 
 function printNodeList(entries) {
     var table = new AsciiTable();
-    table.setHeading('nodeId', 'name', "type");
+    table.setHeading('id', 'name', "type");
     entries.forEach(item => {
         table.addRow(item.entry.id, item.entry.name, item.entry.nodeType);
     });
