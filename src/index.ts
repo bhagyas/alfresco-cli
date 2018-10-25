@@ -8,6 +8,7 @@ import * as flatten from "flat";
 import * as _cliProgress from "cli-progress";
 import chalk = require('chalk');
 import  AsciiTable = require("ascii-table");
+import {throws} from "assert";
 
 let parseNodeRef = (nodeRef?: string) => {
     return nodeRef;
@@ -25,9 +26,11 @@ let nodeNameAutoCompletion = async (input, callback) => {
         let currentNodeRef = getCurrentNodeRef();
         return await alfrescoJsApi.nodes.getNodeChildren(currentNodeRef).then(
             data => {
-                return data.list.entries.map(entry => {
+                let list =  data.list.entries.map(entry => {
                     return entry.entry.name
                 });
+                list.push('.', '..');
+                return list;
             }
         )
     } catch (e) {
@@ -63,10 +66,8 @@ vorpal
             self.log('API authentication performed successfully. Login ticket:' + data);
             vorpal.localStorage.setItem('ticket', data);
         }, function (error) {
-            console.error(error);
-            callback();
-        });
-        callback();
+            vorpal.log(error);
+        }).then(callback);
     });
 
 
@@ -83,9 +84,8 @@ vorpal.command('change site <siteName>', 'Change into a site.')
                 }
             );
         }, function (error) {
-            console.error(error);
-        })
-        callback();
+            vorpal.error(error);
+        }).then(callback);
     });
 
 vorpal
@@ -127,9 +127,8 @@ vorpal
 
             self.log(table.toString());
         }, function (error) {
-            console.error(error);
-        });
-        callback();
+            vorpal.log(error);
+        }).then(callback);
     });
 
 vorpal.command('list people', "Lists all users in system.")
@@ -140,8 +139,8 @@ vorpal.command('list people', "Lists all users in system.")
 
             //TODO: Add the user information table.
         }, function (error) {
-            console.error(error);
-        });
+            vorpal.log(error);
+        }).then(callback);
     });
 
 vorpal
@@ -165,17 +164,15 @@ vorpal.command('list parents [nodeRef]', 'Lists parents for a given nodeRef.')
             let self = this;
 
             getNodeRef(args.nodeRef).then(nodeRef => {
-                alfrescoJsApi.core.childAssociationsApi.listParents(nodeRef, {})
+                return alfrescoJsApi.core.childAssociationsApi.listParents(nodeRef, {})
                     .then(function (data) {
                         // @ts-ignore
                         self.log('API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
                         printNodeList(data.list.entries);
-                        cb();
                     }, function (error) {
-                        console.error(error);
-                        cb();
+                        vorpal.log(error);
                     });
-            });
+            }).then(cb);
 
         }
     );
@@ -251,12 +248,10 @@ vorpal.command('view-metadata [nodeRef] [property]', "Shows metadata for the sel
                 }
 
                 self.log(table.toString());
-
             }, function (error) {
                 self.log('This node does not exist');
             });
-        });
-        callback();
+        }).then(callback);
     });
 
 vorpal.command('move <nodeRef> <destinationNodeRef>', "Moves a node to a destination.")
@@ -284,11 +279,9 @@ vorpal.command('create site <siteId> [title] [description]', "Creates a site (Vi
         alfrescoJsApi.core.sitesApi.createSite(siteBody, {skipAddToFavorites: false, skipConfiguration: false})
             .then(() => {
                 vorpal.log("Site created successfully.");
-                callback();
-            }).catch(() => {
-            vorpal.log("There was an error creating the site.");
-            callback();
-        });
+            }).catch((e) => {
+            vorpal.log(`There was an error creating the site: ${e.message}` );
+        }).then(callback);
 
     });
 
@@ -311,8 +304,7 @@ vorpal.command("create person <userName> <password> [email] [firstName] [lastNam
         ).catch(e => {
             vorpal.log("Unable to create person.");
             vorpal.log(e)
-        });
-        callback();
+        }).then(callback);
     });
 
 vorpal.command('list versions <nodeRef>')
@@ -320,11 +312,9 @@ vorpal.command('list versions <nodeRef>')
         getNodeRef(args.nodeRef).then(nodeId => {
             alfrescoJsApi.core.versionsApi.listVersionHistory(nodeId, {}).then(function(data) {
                 printNodeList(data.list.entries);
-                callback();
             }, function(error) {
-                console.error(error);
-                callback();
-            })
+                vorpal.log(error);
+            }).then(callback)
         })
     });
 
@@ -335,13 +325,12 @@ vorpal.command("create folder <folderName> <destinationNodeRef> [path]", "Create
     .action(function (args, callback) {
         let self = this;
         getNodeRef(args.destinationNodeRef).then(destinationNodeRef => {
-            alfrescoJsApi.nodes.createFolder(args.folderName, args.path, destinationNodeRef).then(function (data) {
+            return alfrescoJsApi.nodes.createFolder(args.folderName, args.path, destinationNodeRef).then(function (data) {
                 self.log('The folder is created.');
             }, function (error) {
                 self.log('Error in creation of this folder or folder already exist' + error);
             }).catch(e => self.log(e.message));
-        });
-        callback();
+        }).then(callback);
     });
 
 let init = async () => {
@@ -365,6 +354,7 @@ let init = async () => {
     }
 };
 
+const error = chalk.default.keyword('red');
 const warning = chalk.default.keyword('orange');
 const info = chalk.default.keyword('blue');
 
@@ -405,7 +395,7 @@ async function getParent(nodeRef) {
     let _nodeRef = await getNodeRef(nodeRef);
     return await alfrescoJsApi.core.childAssociationsApi.listParents(_nodeRef)
         .then(function (data) {
-            vorpal.log('API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
+            vorpal.log('Getting parent.. API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
             let element = data.list.entries[0].entry;
             return element.id;
         }).catch(data => {
@@ -445,50 +435,105 @@ function updateCurrentNodeRef(nodeRef, after) {
         ).then(after);
     ;
 }
-
-vorpal.command('delete <nodeRef> [nodeRefPattern]', 'Deletes a nodeRef matching a pattern')
-    .alias('rm')
-    .autocomplete({data: nodeNameAutoCompletion})
+vorpal.command('undo delete', "Undoes the last delete.")
     .action((args, callback) => {
+        let lastDeleted = vorpal.localStorage.getItem('lastDeleted');
+        if (lastDeleted){
+            vorpal.log(info(`attempting to restore last deleted node: ${lastDeleted}`))
+            alfrescoJsApi.nodes.restoreNode(lastDeleted).then(
+                vorpal.localStorage.removeItem('lastDeleted')
+            ).catch().then(callback);
+        } else{
+            vorpal.log(warning('There was no last deleted nodeRef available.'));
+            callback();
+        }
+    });
+
+vorpal.command('delete <nodeRef> [nodeRefPattern] [force]', 'Deletes a nodeRef matching a pattern')
+    .alias('rm')
+    .option('-f, --force', "Force deletion (no prompt)")
+    .option('-p, --permanent', "Delete file permanently (Skip trashing)")
+    .autocomplete({data: nodeNameAutoCompletion})
+    .action(function (args, callback){
+        const self = this;
+
         let deleteNode = (nodeRef) => {
-            vorpal.log(`Attempting to delete node: ${nodeRef}`)
-            alfrescoJsApi.core.nodesApi.deleteNode(nodeRef).then(
+            vorpal.log(`Attempting to delete node: ${nodeRef}`);
+            let permanent = args.options.permanent;
+            let deleteOp = alfrescoJsApi.core.nodesApi.deleteNode(nodeRef);
+            return deleteOp.then(
                 () => {
+                    if (permanent){
+                        //purge the deleted node
+                        vorpal.log(info('purging deleted node..'));
+                        return alfrescoJsApi.core.nodesApi.purgeDeletedNode(nodeRef);
+                    }
                     vorpal.ui.redraw.clear();
-                    vorpal.log(`Node ${nodeRef} successfully deleted.`)
+                    vorpal.log(info('setting last deleted value...' + nodeRef))
+                    vorpal.localStorage.setItem('lastDeleted', nodeRef);
+                    vorpal.log(`Node ${nodeRef} successfully deleted.`);
                 }
-            ).catch(e => {
+            ).then().catch(e => {
                 vorpal.ui.redraw.clear();
                 vorpal.log(`There was an error deleting node : ${nodeRef}, reason: ${e.message.briefSummary}`)
             })
         };
 
-        let op = () => {
-            if (args.nodeRefPattern) {
+        let op = async () => {
                 //get all children
-                if (args.nodeRefPattern == "*") {
-                    getNodeRef(args.nodeRef).then(nodeRef => {
-                        alfrescoJsApi.core.nodesApi.getNodeChildren(nodeRef).then(
-                            value => {
-                                value.list.entries.forEach(entry => {
-                                    deleteNode(entry.entry.id);
-                                });
-                                callback();
-                            }
-                        )
-                    })
+                let f: any;
+
+                if (args.nodeRefPattern) {
+                    if (args.nodeRefPattern == "*") {
+                        vorpal.log(info(`looking for children of the specified node with pattern: ${args.nodeRefPattern}`))
+                        f = getNodeRef(args.nodeRef, true).then(nodeRef => {
+                            return alfrescoJsApi.core.nodesApi.getNodeChildren(nodeRef).then(
+                                value => {
+                                    value.list.entries.forEach(entry => {
+                                        deleteNode(entry.entry.id);
+                                    });
+                                }
+                            ).then(callback)
+                        });
+                    }else{
+                        //throw error or show there are no results for pattern.
+                    }
+                }else{
+                    f = getNodeRef(args.nodeRef, true)
+                        .then(nodeRef => {
+                            vorpal.log(info("deleting node..."))
+                            return deleteNode(nodeRef);
+                        });
                 }
-            } else {
-                if (!args.nodeRefPattern) {
-                    getNodeRef(args.nodeRef).then(nodeRef => {
-                        deleteNode(nodeRef);
-                        callback();
-                    })
-                }
-            }
+
+                return f.catch(e => {
+                    vorpal.log(error(e.message))
+                    return e;
+                }).then(message => {
+                    // vorpal.log(message);
+                    callback();
+                })
         };
 
-        op();
+        if (args.options.force){
+            vorpal.log(warning('You are forcing deletion. The file will be deleted without confirmation.'))
+            op().then(callback);
+        }else{
+            return this.prompt({
+                type: 'confirm',
+                name: 'continue',
+                default: false,
+                message: 'Do you wish to delete the node(s) specified. Continue?',
+            }, function(result){
+                if (!result.continue) {
+                    self.log('Operation cancelled.');
+                    callback();
+                } else {
+                    self.log('Deleting node(s)..');
+                    op().then(callback);
+                }
+            });
+        }
     });
 
 vorpal.command('list children [nodeRef]', "List all children of a given folder.")
@@ -496,30 +541,26 @@ vorpal.command('list children [nodeRef]', "List all children of a given folder."
     .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         let self = this;
-        try {
-            let list = async (nodeRef) => {
-                self.log(`listing children for nodeRef : ${nodeRef}`);
-                nodeRef = await getNodeRef(args.nodeRef);
-                await alfrescoJsApi.nodes.getNodeChildren(nodeRef).then(function (data) {
-                    let count = data.list.pagination.count;
+        let list = async (nodeRef) => {
+            self.log(`listing children for nodeRef : ${nodeRef}`);
+            await alfrescoJsApi.nodes.getNodeChildren(nodeRef).then(function (data) {
+                let count = data.list.pagination.count;
 
-                    if (count > 0) {
-                        printNodeList(data.list.entries);
-                        self.log('The number of children in this folder are ' + count);
-                    } else {
-                        self.log("No children found.")
-                    }
-                }, function (error) {
-                    self.log('This node does not exist');
-                });
-            };
+                if (count > 0) {
+                    printNodeList(data.list.entries);
+                    self.log('The number of children in this folder are ' + count);
+                } else {
+                    self.log("No children found.")
+                }
+            }, function (error) {
+                self.log('This node does not exist');
+            });
+        };
 
-            getNodeRef(args.nodeRef).then(nodeRef => list(nodeRef)).catch((error) => self.log(error.message));
-
-        } catch (e) {
-            self.log(e.message);
-        }
-        callback();
+        getNodeRef(args.nodeRef)
+            .then(nodeRef => list(nodeRef))
+            .catch((error) => self.log(error.message))
+            .then(callback);
     });
 
 vorpal.localStorage('alfresco-cli');
@@ -535,7 +576,7 @@ function getCurrentNodeRef() {
     return nodeRef;
 }
 
-async function getNodeRef(nodeRef: string) {
+async function getNodeRef(nodeRef: string, explicit = false):Promise<string> {
     let storedNodeRef = getCurrentNodeRef();
 
     if (nodeRef === "..") {
@@ -548,38 +589,38 @@ async function getNodeRef(nodeRef: string) {
 
     if (nodeRef) {
         //look under children first, if not look up as a node.
-        try {
-            let node = await alfrescoJsApi.nodes.getNodeChildren(storedNodeRef).then(data => {
-                let nodeId = data.list.entries.filter(node => {
-                    return (node.entry.name.toLowerCase().trim() === nodeRef.toLowerCase().trim())
-                }).map(entry => {
-                    let nodeId = entry.entry.id;
-                    return nodeId
-                })[0];
+        return alfrescoJsApi.nodes.getNodeChildren(storedNodeRef).then(data => {
+            let nodeId = data.list.entries.filter(node => {
+                return (node.entry.name.toLowerCase().trim() === nodeRef.toLowerCase().trim())
+            }).map(entry => {
+                return entry.entry.id
+            })[0];
 
-                if (nodeId) {
-                    return nodeId;
-                } else {
-                    throw new Error("Unable to find a node with the matching name.");
-                }
-            }).catch(() => {
-                return alfrescoJsApi.nodes.getNodeInfo(nodeRef).then(function (data) {
-                    vorpal.log('name: ' + data.name);
-                    return nodeRef;
-                }, function (error) {
-                    vorpal.log('This node does not exist');
-                    throw new Error("This node does not exist. Reverting to the current node.")
-                })
-            });
-            if (node) {
-                return node;
+            if (nodeId) {
+                return nodeId;
+            } else {
+                throw new Error("Unable to find a node with the matching name.");
             }
-        } catch (e) {
-            return storedNodeRef;
-        }
+        }).catch(() => {
+            return alfrescoJsApi.nodes.getNodeInfo(nodeRef).then(function (data) {
+                vorpal.log(info(`Validated node [id=${data.id}][name=${data.name}]`));
+                return nodeRef;
+            }).catch((error)=> {
+                if (explicit){
+                    return Promise.reject(new Error("Unable to find an exact node match for the specified operation."));
+                }else{
+                    vorpal.log(info('This node does not exist. Trying context...'));
+                    return storedNodeRef;
+                }
+            })
+        })
     }
 
-    return storedNodeRef;
+    if (!explicit){
+        return storedNodeRef;
+    }else{
+        throw new Error("Unable to find a matching nodeRef.")
+    }
 }
 
 async function getDelimiter() {
