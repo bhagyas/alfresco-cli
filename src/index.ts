@@ -19,6 +19,23 @@ let ticket = '';
 
 const vorpal = new Vorpal();
 
+
+let nodeNameAutoCompletion = async (input, callback) => {
+    try {
+        let currentNodeRef = getCurrentNodeRef();
+        return await alfrescoJsApi.nodes.getNodeChildren(currentNodeRef).then(
+            data => {
+                return data.list.entries.map(entry => {
+                    return entry.entry.name
+                });
+            }
+        )
+    } catch (e) {
+        vorpal.log("Unable to find current node location for auto completion.");
+    }
+};
+
+
 vorpal
     .command('login <username> [password] [host]', 'Login to an Alfresco instance.')
     .option('-p', '--password', 'Password')
@@ -53,7 +70,7 @@ vorpal
     });
 
 
-vorpal.command('cd-site <siteName>', 'Change into a site.')
+vorpal.command('change site <siteName>', 'Change into a site.')
     .action((args, callback) => {
         alfrescoJsApi.core.sitesApi.getSites().then(function (data) {
             vorpal.log('API called successfully. Returned data for ' + data.list.entries.length + ' sites');
@@ -68,7 +85,7 @@ vorpal.command('cd-site <siteName>', 'Change into a site.')
             console.error(error);
         })
         callback();
-});
+    });
 
 vorpal
     .command('list sites [info]', 'Lists all sites.')
@@ -149,14 +166,14 @@ vorpal.command('list parents [nodeRef]', 'Lists parents for a given nodeRef.')
             getNodeRef(args.nodeRef).then(nodeRef => {
                 alfrescoJsApi.core.childAssociationsApi.listParents(nodeRef, {})
                     .then(function (data) {
-                    // @ts-ignore
-                    self.log('API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
-                    printNodeList(data.list.entries);
-                    cb();
-                }, function (error) {
-                    console.error(error);
-                    cb();
-                });
+                        // @ts-ignore
+                        self.log('API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
+                        printNodeList(data.list.entries);
+                        cb();
+                    }, function (error) {
+                        console.error(error);
+                        cb();
+                    });
             });
 
         }
@@ -213,6 +230,7 @@ vorpal.command('view-metadata [nodeRef] [property]', "Shows metadata for the sel
     .option('-p', '--property', 'Show only a particualr property.')
     .alias('info')
     .alias('stat')
+    .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         let self = this;
         getNodeRef(args.nodeRef).then(nodeRef => {
@@ -241,42 +259,34 @@ vorpal.command('view-metadata [nodeRef] [property]', "Shows metadata for the sel
     });
 
 vorpal.command('move-node <nodeRef> <destinationNodeRef>', "Moves a node to a destination.")
+    .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         alfrescoJsApi.nodes.moveNode(args[0])
     });
 
-
-vorpal.command("delete node <nodeRef>", "Deletes a given node.")
-    .action(function (args, callback) {
-        this.log('deleting node: ' + args.nodeRef);
-        //not deleting for real for now
-        callback();
-    });
-
 vorpal.command("about", "About Alfresco CLI")
     .action(function (args, callback) {
-        this.log("Alfresco CLI by Bhagya Nirmaan Silva (https://about.me/bhagyas) and other contributors.");
+        this.log("Alfresco CLI by Bhagya Nirmaan Silva (https://about.me/bhagyas)");
         callback();
     });
-
 
 vorpal.command('create site <siteId> [title] [description]', "Creates a site (Visibility PUBLIC by default)")
     .action((args, callback) => {
         let self = this;
         let siteBody = {
-            id :args.siteId,
-            description :args.description,
-            title :args.title,
-            visibility : 'PUBLIC'
+            id: args.siteId,
+            description: args.description,
+            title: args.title,
+            visibility: 'PUBLIC'
         };
         // @ts-ignore
-        alfrescoJsApi.core.sitesApi.createSite(siteBody, { skipAddToFavorites: false, skipConfiguration: false})
+        alfrescoJsApi.core.sitesApi.createSite(siteBody, {skipAddToFavorites: false, skipConfiguration: false})
             .then(() => {
                 vorpal.log("Site created successfully.");
                 callback();
             }).catch(() => {
-                vorpal.log("There was an error creating the site.")
-                callback();
+            vorpal.log("There was an error creating the site.");
+            callback();
         });
 
     });
@@ -298,13 +308,14 @@ vorpal.command("create person <userName> <password> [email] [firstName] [lastNam
                 vorpal.log("Successfully created user.")
                 vorpal.log(JSON.stringify(result));
             }
-        ).catch(e => {vorpal.log("Unable to create person.");
+        ).catch(e => {
+            vorpal.log("Unable to create person.");
             vorpal.log(e)
         });
         callback();
     });
 
-vorpal.command("create folder <folderName> <destinationNodeRef> [path]", "Create folder")
+vorpal.command("create folder <folderName> <destinationNodeRef> [path]", "Create folder at the destination.")
     .option('-p', "--path", "Relative path from the destination nodeRef.")
     .alias('mkdir')
     .action(function (args, callback) {
@@ -344,29 +355,29 @@ const warning = chalk.default.keyword('orange');
 const info = chalk.default.keyword('blue');
 
 vorpal.command('search <query> [language]', "Searches the repostitory for content.")
-.action(function (args, callback) {
-    let self = this;
+    .action(function (args, callback) {
+        let self = this;
 
-    if (!args.language) {
-        self.log(info("You have not set a language, using alfresco full text search syntax (AFTS)."))
-    }
-
-    alfrescoJsApi.search.searchApi.search({
-        "query": {
-            "query": args.query,
-            "language": args.language ? args.language : "afts"
+        if (!args.language) {
+            self.log(info("You have not set a language, using alfresco full text search syntax (AFTS)."))
         }
-    }).then(function (data) {
-        printNodeList(data.list.entries)
-    }, function (error) {
-        self.log(error);
-    }).catch(() => {
 
+        alfrescoJsApi.search.searchApi.search({
+            "query": {
+                "query": args.query,
+                "language": args.language ? args.language : "afts"
+            }
+        }).then(function (data) {
+            printNodeList(data.list.entries)
+        }, function (error) {
+            self.log(error);
+        }).catch(() => {
+
+        });
+        callback();
     });
-    callback();
-});
 
-function printNodeList(entries){
+function printNodeList(entries) {
     var table = new AsciiTable();
     table.setHeading('nodeId', 'name', "type");
     entries.forEach(item => {
@@ -375,11 +386,11 @@ function printNodeList(entries){
     vorpal.log(table.toString());
 }
 
-async function getParent(nodeRef){
+async function getParent(nodeRef) {
     vorpal.log("getting parent for nodeRef: " + nodeRef);
     let _nodeRef = await getNodeRef(nodeRef);
     return await alfrescoJsApi.core.childAssociationsApi.listParents(_nodeRef)
-        .then(function(data) {
+        .then(function (data) {
             vorpal.log('API called successfully. ' + data.list.pagination.totalItems + ' parent(s) found.');
             let element = data.list.entries[0].entry;
             return element.id;
@@ -389,7 +400,10 @@ async function getParent(nodeRef){
         });
 }
 
-vorpal.command("cd [nodeRef]", "Change into a nodeRef")
+
+vorpal.command("change node [nodeRef]", "Change into a nodeRef")
+    .alias('cd')
+    .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         let self = this;
         getNodeRef(args.nodeRef).then(nodeRef => {
@@ -401,26 +415,71 @@ vorpal.command("cd [nodeRef]", "Change into a nodeRef")
     });
 
 vorpal.command('clear', "Clears the current node context.")
-.alias('cls')
-.action((args, callback) =>
-{
-    updateCurrentNodeRef("", callback);
-});
+    .alias('cls')
+    .action((args, callback) => {
+        updateCurrentNodeRef("", callback);
+    });
 
 
-
-function updateCurrentNodeRef(nodeRef, after){
+function updateCurrentNodeRef(nodeRef, after) {
     vorpal.localStorage.setItem('currentNodeRef', nodeRef);
     vorpal.log(vorpal.localStorage.getItem('currentNodeRef'));
     getDelimiter()
-        .then((del) =>  {
-            vorpal.delimiter(del)}
+        .then((del) => {
+                vorpal.delimiter(del)
+            }
         ).then(after);
     ;
 }
 
+vorpal.command('delete <nodeRef> [nodeRefPattern]', 'Deletes a nodeRef matching a pattern')
+    .alias('rm')
+    .autocomplete({data: nodeNameAutoCompletion})
+    .action((args, callback) => {
+        let deleteNode = (nodeRef) => {
+            vorpal.log(`Attempting to delete node: ${nodeRef}`)
+            alfrescoJsApi.core.nodesApi.deleteNode(nodeRef).then(
+                () => {
+                    vorpal.ui.redraw.clear();
+                    vorpal.log(`Node ${nodeRef} successfully deleted.`)
+                }
+            ).catch(e => {
+                vorpal.ui.redraw.clear();
+                vorpal.log(`There was an error deleting node : ${nodeRef}, reason: ${e.message.briefSummary}`)
+            })
+        };
+
+        let op = () => {
+            if (args.nodeRefPattern) {
+                //get all children
+                if (args.nodeRefPattern == "*") {
+                    getNodeRef(args.nodeRef).then(nodeRef => {
+                        alfrescoJsApi.core.nodesApi.getNodeChildren(nodeRef).then(
+                            value => {
+                                value.list.entries.forEach(entry => {
+                                    deleteNode(entry.entry.id);
+                                });
+                                callback();
+                            }
+                        )
+                    })
+                }
+            } else {
+                if (!args.nodeRefPattern) {
+                    getNodeRef(args.nodeRef).then(nodeRef => {
+                        deleteNode(nodeRef);
+                        callback();
+                    })
+                }
+            }
+        };
+
+        op();
+    });
+
 vorpal.command('list children [nodeRef]', "List all children of a given folder.")
     .alias('ls')
+    .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         let self = this;
         try {
@@ -430,10 +489,10 @@ vorpal.command('list children [nodeRef]', "List all children of a given folder."
                 await alfrescoJsApi.nodes.getNodeChildren(nodeRef).then(function (data) {
                     let count = data.list.pagination.count;
 
-                    if(count > 0){
+                    if (count > 0) {
                         printNodeList(data.list.entries);
                         self.log('The number of children in this folder are ' + count);
-                    }else{
+                    } else {
                         self.log("No children found.")
                     }
                 }, function (error) {
@@ -452,13 +511,13 @@ vorpal.command('list children [nodeRef]', "List all children of a given folder."
 vorpal.localStorage('alfresco-cli');
 vorpal.history('alfresco-cli');
 
- function getCurrentNodeRef() {
+function getCurrentNodeRef() {
     let nodeRef = vorpal.localStorage.getItem('currentNodeRef');
 
-    if(!nodeRef){
+    if (!nodeRef) {
         throw new Error("Unable to find current nodeRef.");
     }
-    
+
     return nodeRef;
 }
 
@@ -473,9 +532,9 @@ async function getNodeRef(nodeRef: string) {
         return storedNodeRef;
     }
 
-    if(nodeRef) {
+    if (nodeRef) {
         //look under children first, if not look up as a node.
-        try{
+        try {
             let node = await alfrescoJsApi.nodes.getNodeChildren(storedNodeRef).then(data => {
                 let nodeId = data.list.entries.filter(node => {
                     return (node.entry.name.toLowerCase().trim() === nodeRef.toLowerCase().trim())
@@ -483,25 +542,25 @@ async function getNodeRef(nodeRef: string) {
                     let nodeId = entry.entry.id;
                     return nodeId
                 })[0];
-                
-                if(nodeId){
+
+                if (nodeId) {
                     return nodeId;
-                }else{
+                } else {
                     throw new Error("Unable to find a node with the matching name.");
                 }
-            }).catch( ()=> {
+            }).catch(() => {
                 return alfrescoJsApi.nodes.getNodeInfo(nodeRef).then(function (data) {
-                    vorpal.log('name: ' + data.name );
+                    vorpal.log('name: ' + data.name);
                     return nodeRef;
                 }, function (error) {
                     vorpal.log('This node does not exist');
                     throw new Error("This node does not exist. Reverting to the current node.")
                 })
             });
-            if(node){
+            if (node) {
                 return node;
             }
-        }catch (e) {
+        } catch (e) {
             return storedNodeRef;
         }
     }
@@ -514,7 +573,7 @@ async function getDelimiter() {
     try {
         item = getCurrentNodeRef();
         return `alfresco-cli:${item}$`;
-    }catch(error){
+    } catch (error) {
         return `alfresco-cli$`;
     }
 }

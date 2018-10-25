@@ -74,10 +74,15 @@ None
 
 == Version History
 
+* 1.2 - 20181025
+- [MAJOR] Adding folder name auto completion
+- Added `delete` command with support for deleting child nodes.
+
 * 1.1 - 20181024
 - Converted the code to Typescript
 - Added support for node name as an alias for nodeId when referred from a valid context.
-- Added `create user`, `create site` commands.
+- Added `create user`, `create site`, `cd-site` commands.
 - Added support for `.` and `..` aliases.
+
 * 1.0 - 20181023
 - Initial release
