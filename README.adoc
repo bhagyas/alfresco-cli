@@ -82,7 +82,7 @@ None
 
 == Version History
 
-* 1.2.2 20181026
+* 1.2.2 - 20181026
 - Added better `delete` function with confirmation prompt.
 - Added `undo delete` to restore last deleted node.
 
