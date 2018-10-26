@@ -8,6 +8,8 @@ import * as flatten from "flat";
 import * as _cliProgress from "cli-progress";
 import chalk = require('chalk');
 import  AsciiTable = require("ascii-table");
+var minimatch = require("minimatch")
+
 import {throws} from "assert";
 
 let parseNodeRef = (nodeRef?: string) => {
@@ -30,6 +32,12 @@ let nodeNameAutoCompletion = async (input, callback) => {
                     return entry.entry.name
                 });
                 list.push('.', '..');
+
+                let resultsHistory = vorpal.localStorage.getItem('resultsHistory') ? JSON.parse(vorpal.localStorage.getItem('resultsHistory')) : [];
+                if(resultsHistory){
+                    list.push(resultsHistory);
+                }
+                
                 return list;
             }
         )
@@ -318,9 +326,60 @@ vorpal.command('list versions <nodeRef>')
         })
     });
 
+interface Alias {
+    alias: string;
+    expanded: string;
+}
 
-vorpal.command("create folder <folderName> <destinationNodeRef> [path]", "Create folder at the destination.")
-    .option('-p', "--path", "Relative path from the destination nodeRef.")
+vorpal.command('alias set <alias> <expanded>', 'Sets an alias for an argument/search query')
+    .action((args, callback) => {
+        let aliases = getAllAliases();
+
+        //if found, update
+        if(getAlias(args.alias)){
+            //get all aliases except this one.
+            aliases = aliases.filter(item => {
+                return item.alias != args.alias;
+            })
+        }
+        
+        let alias:Alias = {alias: args.alias, expanded: args.expanded};
+        aliases.push(alias);
+
+        vorpal.localStorage.setItem('aliases', JSON.stringify(aliases));
+        //known issue, need to handle setting existing alias.
+        callback();
+    }) ;
+
+vorpal.command('alias clear', 'Clears all aliases that have been set.')
+    .action((args, callback) => {
+        vorpal.localStorage.removeItem('aliases');
+        callback();
+    }) ;
+
+function getAllAliases(): Array<Alias>{
+    return vorpal.localStorage.getItem('aliases') ? JSON.parse(vorpal.localStorage.getItem('aliases')) : [];
+}
+
+function getAlias(alias):Alias{
+    let aliases = getAllAliases() ;
+    let filterElement:Alias = aliases.filter(aliasItem => {
+        return aliasItem.alias == alias
+    })[0];
+    return filterElement;
+}
+
+function getAliasString(alias): string{
+    let foundAlias = getAlias(alias);
+    if(foundAlias){
+        return foundAlias.expanded;
+    }else{
+        throw new Error(`Unable to find matching alias for '${alias}'.`)
+    }
+}
+
+vorpal.command("create folder <folderName> [destinationNodeRef] [path]", "Create folder at the destination.")
+    .option('-p, --path', "Relative path from the destination nodeRef.")
     .alias('mkdir')
     .action(function (args, callback) {
         let self = this;
@@ -356,9 +415,10 @@ let init = async () => {
 
 const error = chalk.default.keyword('red');
 const warning = chalk.default.keyword('orange');
-const info = chalk.default.keyword('blue');
+const info = chalk.default.keyword('gray');
 
-vorpal.command('search <query> [language]', "Searches the repostitory for content.")
+vorpal.command('search <query> [language] [alias]', "Searches the repostitory for content.")
+    .option('-a, --alias', 'Use search query alias')
     .action(function (args, callback) {
         let self = this;
 
@@ -366,28 +426,50 @@ vorpal.command('search <query> [language]', "Searches the repostitory for conten
             self.log(info("You have not set a language, using alfresco full text search syntax (AFTS)."))
         }
 
-        alfrescoJsApi.search.searchApi.search({
-            "query": {
-                "query": args.query,
-                "language": args.language ? args.language : "afts"
-            }
-        }).then(function (data) {
-            printNodeList(data.list.entries)
-        }, function (error) {
-            self.log(error);
-        }).catch(() => {
 
-        });
-        callback();
+        let query: string;
+        try {
+            query = args.options.alias ? getAliasString(args.query) : args.query;
+            alfrescoJsApi.search.searchApi.search({
+                "query": {
+                    "query": query,
+                    "language": args.language ? args.language : "afts"
+                }
+            }).then(function (data) {
+                printNodeList(data.list.entries);
+                cacheResults(data.list.entries);
+            }, function (error) {
+                self.log(error);
+            }).catch(() => {
+
+            }).then(callback);
+        }catch(e){
+            vorpal.log(e.message);
+            callback();
+        }
     });
 
 function printNodeList(entries) {
     var table = new AsciiTable();
     table.setHeading('id', 'name', "type");
+    //clear the results history
+    vorpal.localStorage.removeItem('resultsHistory');
+    let found = false;
     entries.forEach(item => {
+        found = true;
         table.addRow(item.entry.id, item.entry.name, item.entry.nodeType);
     });
-    vorpal.log(table.toString());
+    if(found)
+        vorpal.log(table.toString());
+}
+
+function cacheResults(entries){
+    vorpal.localStorage.removeItem('resultsHistory');
+    entries.forEach(item => {
+        //add the results to the history.
+        let resultsHistory = vorpal.localStorage.getItem('resultsHistory');
+        vorpal.localStorage.setItem('resultsHistory', JSON.stringify(resultsHistory ? JSON.parse(resultsHistory).push(item.entry.id) : [item.entry.id]))
+    });
 }
 
 async function getParent(nodeRef) {
@@ -412,16 +494,19 @@ vorpal.command("change node [nodeRef]", "Change into a nodeRef")
         let self = this;
         getNodeRef(args.nodeRef).then(nodeRef => {
             updateCurrentNodeRef(nodeRef, callback);
+
         }).catch(e => () => {
             self.log(e.message);
             callback();
         });
     });
 
-vorpal.command('clear', "Clears the current node context.")
+vorpal.command('clear', "Clears the current node context and history.")
     .alias('cls')
     .action((args, callback) => {
         updateCurrentNodeRef("", callback);
+        vorpal.localStorage.removeItem('resultsHistory');
+        callback();
     });
 
 
@@ -448,6 +533,10 @@ vorpal.command('undo delete', "Undoes the last delete.")
             callback();
         }
     });
+
+function matchesPattern(entry, pattern) {
+    return minimatch(entry.entry.id, pattern) || minimatch(entry.entry.name, pattern);
+}
 
 vorpal.command('delete <nodeRef> [nodeRefPattern] [force]', 'Deletes a nodeRef matching a pattern')
     .alias('rm')
@@ -484,17 +573,21 @@ vorpal.command('delete <nodeRef> [nodeRefPattern] [force]', 'Deletes a nodeRef m
                 let f: any;
 
                 if (args.nodeRefPattern) {
-                    if (args.nodeRefPattern == "*") {
-                        vorpal.log(info(`looking for children of the specified node with pattern: ${args.nodeRefPattern}`))
-                        f = getNodeRef(args.nodeRef, true).then(nodeRef => {
-                            return alfrescoJsApi.core.nodesApi.getNodeChildren(nodeRef).then(
-                                value => {
-                                    value.list.entries.forEach(entry => {
+                    vorpal.log(info(`looking for children of the specified node with pattern: ${args.nodeRefPattern}`))
+                    f = getNodeRef(args.nodeRef, true).then(nodeRef => {
+                        return alfrescoJsApi.core.nodesApi.getNodeChildren(nodeRef).then(
+                            value => {
+                                value.list.entries.forEach(entry => {
+                                    if(matchesPattern(entry, args.nodeRefPattern)){
+                                        vorpal.log(warning(`deleting node: ${entry.entry.id}:${entry.entry.name}`))
                                         deleteNode(entry.entry.id);
-                                    });
-                                }
-                            ).then(callback)
-                        });
+                                    }
+                                });
+                            }
+                        ).then(callback)
+                    });
+                    if (args.nodeRefPattern == "*") {
+
                     }else{
                         //throw error or show there are no results for pattern.
                     }
@@ -536,8 +629,9 @@ vorpal.command('delete <nodeRef> [nodeRefPattern] [force]', 'Deletes a nodeRef m
         }
     });
 
-vorpal.command('list children [nodeRef]', "List all children of a given folder.")
+vorpal.command('list children [nodeRef] [pattern]', "List all children of a given folder.")
     .alias('ls')
+    .option('-p, --pattern', "Pattern for filtering.")
     .autocomplete({data: nodeNameAutoCompletion})
     .action(function (args, callback) {
         let self = this;
@@ -547,8 +641,14 @@ vorpal.command('list children [nodeRef]', "List all children of a given folder."
                 let count = data.list.pagination.count;
 
                 if (count > 0) {
-                    printNodeList(data.list.entries);
-                    self.log('The number of children in this folder are ' + count);
+                    self.log('The total number of children in this folder are ' + count);
+                    if(args.options.pattern){
+                        printNodeList(data.list.entries.filter(entry => {
+                           return matchesPattern(entry, args.pattern);
+                        }))
+                    }else{
+                        printNodeList(data.list.entries);
+                    }
                 } else {
                     self.log("No children found.")
                 }

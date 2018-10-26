@@ -98,6 +98,16 @@ None
 
 ## Version History
 
+-   1.2.2 - 20181026
+
+    -   Added better `delete` function with confirmation prompt.
+
+    -   Added `undo delete` to restore last deleted node.
+
+-   1.2.1 - 20181025
+
+    -   Added `list versions` command.
+
 -   1.2 - 20181025
 
     -   \[MAJOR\] Adding folder name auto completion

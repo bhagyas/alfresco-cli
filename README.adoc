@@ -82,6 +82,11 @@ None
 
 == Version History
 
+* 1.2.3 - 20181026
+- Added search results auto completion in the results history.
+- Added `alias set|clear` commands for adding aliases for search queries.
+- Added glob pattern matching for `list` and `delete` commands.
+
 * 1.2.2 - 20181026
 - Added better `delete` function with confirmation prompt.
 - Added `undo delete` to restore last deleted node.
