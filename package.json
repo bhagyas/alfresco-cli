@@ -8,7 +8,10 @@
     "build": "webpack",
     "start": "npm run build && node dist/bundle.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublishOnly": "npm run build && sh md-gen.sh"
+    "prepublishOnly": "npm run build && sh md-gen.sh",
+    "preversion": "npm test",
+    "version": "npm run build && git add -A",
+    "postversion": "git push && git push --tags && npm publish"
   },
   "author": "Bhagya Nirmaan Silva",
   "license": "MIT",
