@@ -83,7 +83,7 @@ None
 
 == Version History
 
-* 1.2.4 - 20181028
+* 1.3 - 20181028
 - *Major:*  Improved `login` command.
 
 * 1.2.3 - 20181026
