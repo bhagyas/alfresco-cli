@@ -104,6 +104,8 @@ None
 
     -   **Major:** Improved `login` command.
 
+    -   Added auto completion for site names when using `change site` command.
+
 -   1.2.3 - 20181026
 
     -   Added search results auto completion in the results history.
