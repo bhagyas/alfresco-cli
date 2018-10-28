@@ -11,10 +11,6 @@ import  AsciiTable = require("ascii-table");
 
 let minimatch = require("minimatch")
 
-import {throws} from "assert";
-import {promises} from "fs";
-import {log} from "util";
-
 let parseNodeRef = (nodeRef?: string) => {
     return nodeRef;
 };
