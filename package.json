@@ -10,7 +10,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepublishOnly": "npm run build && sh md-gen.sh",
     "version": "npm run build && git add -A",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "commit": "git add -A && git commit -m 'post-publish-automatic' && npm run postversion",
+    "postpublish" : "npm run commit"
   },
   "author": "Bhagya Nirmaan Silva",
   "license": "MIT",
