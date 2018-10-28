@@ -167,41 +167,8 @@ vorpal
         let self = this;
         alfrescoJsApi.core.sitesApi.getSites().then(function (data) {
             self.log('API called successfully. Returned data for ' + data.list.entries.length + ' sites');
-            //todo: merge the simpler sites list.
             printNodeList(data.list.entries, ['id', 'guid', 'title', 'description']);
             cacheResults(data.list.entries, ['guid']);
-
-            let old = () => {
-                let sites = data.list.entries.map((item) => {
-                    let i = {};
-                    if (args.options.info) {
-                        i[item.entry.id] = item.entry;
-                    } else {
-                        i[item.entry.id] = item.entry.title + (item.entry.description ? " - " + item.entry.description : "");
-                    }
-                    return i;
-                });
-
-                let rows = flatten(sites);
-                let table = new AsciiTable();
-                if (args.info) {
-                    table.setHeading('site-id/property', 'value', "id");
-                } else {
-                    table.setHeading('site-id', 'site-name', "id");
-                }
-                for (let key in rows) {
-                    if (args.property) {
-                        if (args.property == key) {
-                            table.addRow(key, rows[key])
-                        }
-                    } else {
-                        table.addRow(key, rows[key]);
-                    }
-                }
-
-                self.log(table.toString());
-            };
-
         }, function (error) {
             vorpal.log(error);
         }).then(callback);
