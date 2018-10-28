@@ -18,6 +18,7 @@ Interact with the Alfresco repository with an interactive command line.
 == Features
 - Performs Alfresco operations from the terminal.
 - Autocompletes node names for valid operations.
+- Performs glob pattern matching for filename related operations.
 - Maintains a session with a valid token, automatically persists within terminal sessions.
 - Maintains a local command history
 
@@ -82,6 +83,9 @@ None
 
 == Version History
 
+* 1.2.4 - 20181028
+- *Major:*  Improved `login` command.
+
 * 1.2.3 - 20181026
 - Added search results auto completion in the results history.
 - Added `alias set|clear` commands for adding aliases for search queries.
@@ -94,7 +98,7 @@ None
 * 1.2.1 - 20181025
 - Added `list versions` command.
 * 1.2 - 20181025
-- [MAJOR] Adding folder name auto completion
+- *Major:* Adding folder name auto completion
 - Added `delete` command with support for deleting child nodes.
 
 * 1.1 - 20181024

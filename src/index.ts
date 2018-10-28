@@ -11,6 +11,8 @@ import  AsciiTable = require("ascii-table");
 var minimatch = require("minimatch")
 
 import {throws} from "assert";
+import {promises} from "fs";
+import {log} from "util";
 
 let parseNodeRef = (nodeRef?: string) => {
     return nodeRef;
@@ -48,34 +50,82 @@ let nodeNameAutoCompletion = async (input, callback) => {
 
 
 vorpal
-    .command('login <username> [password] [host]', 'Login to an Alfresco instance.')
-    .option('-p', '--password', 'Password')
-    .option('-h', '--host', "Host")
+    .command('login <username>', 'Login to an Alfresco instance.')
+    .option('-p, --password <password>', 'Password')
+    .option('-h, --host <host>', "Host")
+    .option('-s, --save', "Save host")
     .action(function (args, callback) {
         let self = this;
         self.log(chalk.default.green('logging in..'));
-        let password;
+        let loginToAlfresco = (username, password) => {
+            return new Promise((resolve, reject) => {
+                return alfrescoJsApi.login(username, password)
+                    .then(function (data) {
+                        self.log('API authentication performed successfully. Login ticket:' + data);
+                        vorpal.localStorage.setItem('ticket', data);
+                        resolve();
+                    }, function (data) {
+                        let error = JSON.parse(data.response.text).error.briefSummary;
+                        reject(error);
+                    }).catch(error => reject(error));
+            })
+        };
 
-        self.log(JSON.stringify(args));
-        if (args.host) {
-            host = args.host;
-            this.log("Updating host: " + args.host);
-            vorpal.localStorage.setItem('host', args.host);
+        let getParameter = (parameter, type ='input') => {
+            return new Promise((resolve, reject) =>
+            {
+                let storedValue = vorpal.localStorage.getItem(parameter);
+                if (storedValue) {
+                    return resolve(storedValue);
+                }
+
+                if (args[parameter]){
+                    return resolve(args[parameter]);
+                }
+                if (args.options[parameter]) {
+                    return resolve(args.options[parameter]);
+                } else {
+                    return self.prompt({
+                        type: type,
+                        name: parameter,
+                        default: null,
+                        message: `Please enter the ${parameter}: `,
+                    }, results => {
+                        let result = results[parameter];
+                        if (result){
+                            resolve(result);
+                        }else{
+                            reject('Please try again.')
+                        }
+                    }, error => {
+                        reject(error);
+                    });
+                }
+            });
+        };
+
+        let updateHost = async (host) => {
+            this.log(`Using host: ${host}. Change host by passing host as an argument.`);
             alfrescoJsApi.changeEcmHost(host);
-        }
 
-        if (args.password) {
-            password = args.password;
-        } else {
-            //prompt for password
-        }
+            if (args.options.save){
+                vorpal.localStorage.setItem('host', host);
+            }
+        };
 
-        alfrescoJsApi.login(args.username, password).then(function (data) {
-            self.log('API authentication performed successfully. Login ticket:' + data);
-            vorpal.localStorage.setItem('ticket', data);
-        }, function (error) {
-            vorpal.log(error);
-        }).then(callback);
+        let authenticate = new Promise((resolve, reject) => {
+            return getParameter('host').then((host => {
+                return updateHost(host).then(() => {
+                    return getParameter('password', 'password').then(password => {
+                        return loginToAlfresco(args.username, password).then(() => {
+                            return resolve();
+                        }).catch(reject);
+                    }).catch(reject)
+                });
+            }));
+        });
+
+        authenticate.catch(callback).then(callback);
     });
 
 
@@ -114,7 +164,7 @@ vorpal
                     i[item.entry.id] = item.entry.title + (item.entry.description ? " - " + item.entry.description : "");
                 }
                 return i;
-            })
+            });
 
             let rows = flatten(sites);
             var table = new AsciiTable();
@@ -460,7 +510,10 @@ function printNodeList(entries) {
         table.addRow(item.entry.id, item.entry.name, item.entry.nodeType);
     });
     if(found)
-        vorpal.log(table.toString());
+        {vorpal.log(table.toString());}
+        else{
+        vorpal.log(`no results`)
+    }
 }
 
 function cacheResults(entries){
@@ -678,6 +731,11 @@ function getCurrentNodeRef() {
 
 async function getNodeRef(nodeRef: string, explicit = false):Promise<string> {
     let storedNodeRef = getCurrentNodeRef();
+
+    //check for connectivity.
+    if (!alfrescoJsApi.isLoggedIn()){
+        throw new Error("Unable to connect to the repository, please login again.");
+    }
 
     if (nodeRef === "..") {
         return await getParent(storedNodeRef);
