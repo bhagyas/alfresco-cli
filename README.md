@@ -18,6 +18,18 @@
 
 -   Install using `npm install -g && npm link`
 
+## Features
+
+-   Performs Alfresco operations from the terminal.
+
+-   Autocompletes node names for valid operations.
+
+-   Performs glob pattern matching for filename related operations.
+
+-   Maintains a session with a valid token, automatically persists within terminal sessions.
+
+-   Maintains a local command history
+
 ## Usage
 
 -   Call `alfresco-cli` from your terminal.
@@ -88,9 +100,33 @@ None
 
 ## Version History
 
+-   1.3 - 20181028
+
+    -   **Major:** Improved `login` command.
+
+    -   Added auto completion for site names when using `change site` command.
+
+-   1.2.3 - 20181026
+
+    -   Added search results auto completion in the results history.
+
+    -   Added `alias set|clear` commands for adding aliases for search queries.
+
+    -   Added glob pattern matching for `list` and `delete` commands.
+
+-   1.2.2 - 20181026
+
+    -   Added better `delete` function with confirmation prompt.
+
+    -   Added `undo delete` to restore last deleted node.
+
+-   1.2.1 - 20181025
+
+    -   Added `list versions` command.
+
 -   1.2 - 20181025
 
-    -   \[MAJOR\] Adding folder name auto completion
+    -   **Major:** Adding folder name auto completion
 
     -   Added `delete` command with support for deleting child nodes.
 
@@ -100,7 +136,7 @@ None
 
     -   Added support for node name as an alias for nodeId when referred from a valid context.
 
-    -   Added `create user`, `create site`, `cd-site` commands.
+    -   Added `create user`, `create site`, `cd-site`, `search` commands.
 
     -   Added support for `.` and `..` aliases.
 
