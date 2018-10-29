@@ -28,6 +28,7 @@
     "fs": "0.0.1-security",
     "inquirer": "^6.2.0",
     "minimatch": "^3.0.4",
+    "prettyjson": "^1.2.1",
     "shelljs": "^0.8.2",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^5.2.2",
