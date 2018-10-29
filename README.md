@@ -96,7 +96,7 @@ There are no analytics gathered upon the use of the tool. However, the author re
 
 ## Contributors
 
-None
+-   Bindu Wavell (<https://github.com/binduwavell>)
 
 ## Version History
 
