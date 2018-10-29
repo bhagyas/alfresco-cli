@@ -85,6 +85,10 @@ There are no analytics gathered upon the use of the tool. However, the author re
 
 == Version History
 
+* 1.3.4 - 20181029
+- Added `cls` for clearing screen (@binduwavell)
+- Added `-p --pretty` for pretty printing debug output (@binduwavell)
+
 * 1.3 - 20181028
 - *Major:*  Improved `login` command.
 - Added auto completion for site names when using `change site` command.
