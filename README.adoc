@@ -11,6 +11,8 @@ Interact with the Alfresco repository with an interactive command line.
 === From NPM
 - Run `npm install -g alfresco-cli`
 
+Available at https://www.npmjs.com/package/alfresco-cli
+
 === From GitHub
 - Clone the repository
 - Install using `npm install -g && npm link`
