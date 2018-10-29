@@ -23,6 +23,7 @@
     "flat": "^4.1.0",
     "fs": "0.0.1-security",
     "inquirer": "^6.2.0",
+    "prettyjson": "^1.2.1",
     "shelljs": "^0.8.2",
     "source-map-loader": "^0.2.4",
     "ts-loader": "^5.2.2",

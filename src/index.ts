@@ -7,7 +7,8 @@ import * as fsAutocomplete from 'vorpal-autocomplete-fs';
 import * as flatten from "flat";
 import * as _cliProgress from "cli-progress";
 import chalk = require('chalk');
-import  AsciiTable = require("ascii-table");
+import AsciiTable = require("ascii-table");
+import prettyjson = require('prettyjson');
 
 let parseNodeRef = (nodeRef?: string) => {
     return nodeRef;
@@ -145,9 +146,17 @@ vorpal.command('list people', "Lists all users in system.")
 
 vorpal
     .command('debug', 'Debug current connection information.')
+    .option('-p, --pretty', "Format information to be more human readable.")
+    .types({
+        boolean: ['p', 'pretty']
+    })
     .action(function (args, callback) {
-        this.log('debug: ');
-        this.log(JSON.stringify(alfrescoJsApi));
+        if (args.options.pretty) {
+            this.log(prettyjson.render(alfrescoJsApi));
+        } else {
+            this.log('debug: ');
+            this.log(JSON.stringify(alfrescoJsApi));
+        }
         callback();
     });
 
