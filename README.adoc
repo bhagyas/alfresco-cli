@@ -79,7 +79,7 @@ MIT License
 There are no analytics gathered upon the use of the tool. However, the author reserves the right to add analytics on a later release to improve features provided by the tool.
 
 == Contributors
-None
+- Bindu Wavell (https://github.com/binduwavell)
 
 == Version History
 
