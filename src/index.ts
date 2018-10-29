@@ -184,6 +184,13 @@ vorpal.command('list people', "Lists all users in system.")
     });
 
 vorpal
+    .command('cls', 'Clear the screen.')
+    .action(function(args, callback) {
+        this.log('\u001B[2J');
+        callback();
+    });
+
+vorpal
     .command('debug', 'Debug current connection information.')
     .option('-p, --pretty', "Format information to be more human readable.")
     .types({
