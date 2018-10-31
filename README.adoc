@@ -71,7 +71,7 @@ You can use the following aliases within commands.
 MIT License
 
 == Author
-- Bhagya Nirmaan Silva (about.me/bhagyas)
+- Bhagya Nirmaan Silva (http://github.com/bhagyas[bhagyas],  http://about.me/bhagyas[about.me/bhagyas])
 
 == Development Sponsors
 - http://loftux.com[Loftux AB]
@@ -81,7 +81,7 @@ MIT License
 There are no analytics gathered upon the use of the tool. However, the author reserves the right to add analytics on a later release to improve features provided by the tool.
 
 == Contributors
-- Bindu Wavell (https://github.com/binduwavell)
+- Bindu Wavell (https://github.com/binduwavell[binduwavell])
 
 == Version History
 

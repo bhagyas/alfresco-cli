@@ -1,5 +1,5 @@
 import * as AlfrescoApi from 'alfresco-js-api-node';
-import {PersonBodyCreate, SiteBody} from 'alfresco-js-api-node';
+import {Node, NodeEntry, PersonBodyCreate, SiteBody} from 'alfresco-js-api-node';
 import * as Vorpal from 'vorpal';
 // @ts-ignore
 import * as fs from 'fs';
@@ -253,7 +253,7 @@ vorpal
                 })
                 .on('success', () => {
                     bar1.stop();
-                    vorpal.ui.redraw.clear()
+                    vorpal.ui.redraw.clear();
                     self.log('Your File is uploaded');
 
                 })
@@ -612,87 +612,90 @@ vorpal.command('delete <nodeRef> [nodeRefPattern] [force]', 'Deletes a nodeRef m
     .action(function (args, callback) {
         const self = this;
 
-        let deleteNode = (nodeRef) => {
-            vorpal.log(`Attempting to delete node: ${nodeRef}`);
-            let permanent = args.options.permanent;
+        let deleteNode = (nodeRef, permanent) => {
+            vorpal.ui.redraw(`Deleting node: ${nodeRef}`);
+            // let permanent = args.options.permanent;
             let deleteOp = alfrescoJsApi.core.nodesApi.deleteNode(nodeRef);
             return deleteOp.then(
                 () => {
                     if (permanent) {
                         //purge the deleted node
-                        vorpal.log(info('purging deleted node..'));
+                        vorpal.ui.redraw(info('Purging deleted node..'));
                         return alfrescoJsApi.core.nodesApi.purgeDeletedNode(nodeRef);
                     }
-                    vorpal.ui.redraw.clear();
-                    vorpal.log(info('setting last deleted value...' + nodeRef))
+                    // vorpal.ui.redraw(info('setting last deleted value...' + nodeRef))
                     vorpal.localStorage.setItem('lastDeleted', nodeRef);
-                    vorpal.log(`Node ${nodeRef} successfully deleted.`);
+                    vorpal.ui.redraw(`Node ${nodeRef} successfully deleted.`);
                 }
-            ).then().catch(e => {
-                vorpal.ui.redraw.clear();
+            ).then(() =>{
+                vorpal.ui.redraw.done();
+            }).catch(e => {
                 vorpal.log(`There was an error deleting node : ${nodeRef}, reason: ${e.message.briefSummary}`)
             })
         };
 
-        let op = async () => {
+        let getNodesToDelete = async (start, pattern): Promise<Array<NodeEntry>> => {
             //get all children
-            let f: any;
+            let nodes: Array<NodeEntry> = [];
 
             if (args.nodeRefPattern) {
-                vorpal.log(info(`looking for children of the specified node with pattern: ${args.nodeRefPattern}`))
-                f = getNodeRefContext(args.nodeRef, true).then(nodeRef => {
+                vorpal.log(info(`looking for children of the specified node with pattern: ${args.nodeRefPattern}`));
+                await getNodeRefContext(start, true).then(nodeRef => {
                     return alfrescoJsApi.core.nodesApi.getNodeChildren(nodeRef).then(
                         value => {
-                            value.list.entries.forEach(entry => {
-                                if (matchesPattern(entry, args.nodeRefPattern)) {
-                                    vorpal.log(warning(`deleting node: ${entry.entry.id}:${entry.entry.name}`))
-                                    deleteNode(entry.entry.id);
+                            return value.list.entries.forEach(entry => {
+                                if (matchesPattern(entry, pattern)) {
+                                    nodes.push(entry);
                                 }
                             });
                         }
-                    ).then(callback)
+                    );
                 });
-                if (args.nodeRefPattern == "*") {
-
-                } else {
-                    //throw error or show there are no results for pattern.
+                if(nodes.length == 0){
+                    throw new Error("No matching nodes found.")
                 }
-            } else {
-                f = getNodeRefContext(args.nodeRef, true)
-                    .then(nodeRef => {
-                        vorpal.log(info("deleting node..."))
-                        return deleteNode(nodeRef);
-                    });
+                return nodes;
             }
-
-            return f.catch(e => {
-                vorpal.log(error(e.message))
-                return e;
-            }).then(message => {
-                // vorpal.log(message);
-                callback();
-            })
+            
+            return [];
         };
 
-        if (args.options.force) {
-            vorpal.log(warning('You are forcing deletion. The file will be deleted without confirmation.'))
-            op().then(callback);
-        } else {
-            return this.prompt({
-                type: 'confirm',
-                name: 'continue',
-                default: false,
-                message: 'Do you wish to delete the node(s) specified. Continue?',
-            }, function (result) {
-                if (!result.continue) {
-                    self.log('Operation cancelled.');
-                    callback();
-                } else {
-                    self.log('Deleting node(s)..');
-                    op().then(callback);
+
+        getNodesToDelete(args.nodeRef, args.nodeRefPattern)
+            .then(results => {
+                    if (args.options.force) {
+                        vorpal.log(warning('You are forcing deletion. The file will be deleted without confirmation.'));
+                        return results;
+                    } else {
+                        let promise = self.prompt({
+                            type: 'confirm',
+                            name: 'continue',
+                            default: false,
+                            message: `You are about to delete ${results.length} node(s). Continue?`,
+                        });
+
+                        return promise.then(result => {
+                            if (!result.continue) {
+                                throw Error("Operation cancelled.");
+                            } else {
+                                self.log(`Deleting ${results.length} node(s)..`);
+                                return results;
+                            }
+                        });
+                    }
+                })
+            .catch(e => {vorpal.log(e.message); return [];})
+            .then(results => {
+                if(results) {
+                    results.forEach(result => {
+                        deleteNode(result.entry.id, args.options.permanent).catch(e => {
+                            throw e
+                        });
+                    })
                 }
-            });
-        }
+            })
+            .catch(callback)
+            .then(callback);
     });
 
 vorpal.command('list children [nodeRef] [pattern]', "List all children of a given folder.")
