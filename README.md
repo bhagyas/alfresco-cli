@@ -12,6 +12,8 @@
 
 -   Run `npm install -g alfresco-cli`
 
+Available at <https://www.npmjs.com/package/alfresco-cli>
+
 ### From GitHub
 
 -   Clone the repository
@@ -84,7 +86,7 @@ MIT License
 
 ## Author
 
--   Bhagya Nirmaan Silva (about.me/bhagyas)
+-   Bhagya Nirmaan Silva ([bhagyas](http://github.com/bhagyas), [about.me/bhagyas](http://about.me/bhagyas))
 
 ## Development Sponsors
 
@@ -96,9 +98,19 @@ There are no analytics gathered upon the use of the tool. However, the author re
 
 ## Contributors
 
--   Bindu Wavell (<https://github.com/binduwavell>)
+-   Bindu Wavell ([binduwavell](https://github.com/binduwavell))
 
 ## Version History
+
+-   1.3.5 - 20181031
+
+    -   Improved delete command (`delete`)
+
+-   1.3.4 - 20181029
+
+    -   Added `cls` for clearing screen (@binduwavell)
+
+    -   Added `-p --pretty` for pretty printing debug output (@binduwavell)
 
 -   1.3 - 20181028
 
