@@ -85,6 +85,11 @@ There are no analytics gathered upon the use of the tool. However, the author re
 
 == Version History
 
+* 1.4 - 20181106
+- *Major* Added glob expansion support for `mkdir`
+- Improved glob matching
+- Improved error handling
+
 * 1.3.5 - 20181031
 - Improved delete command (`delete`)
 
