@@ -6,6 +6,36 @@
 
 -   Alfresco Developers and Architects
 
+## Local Development Testing
+
+### Using Docker Compose
+
+A Docker Compose file is provided to run a local Alfresco Community instance for testing:
+
+```bash
+# Start Alfresco (will be available at http://localhost:8082)
+docker compose up -d
+
+# Wait for Alfresco to be ready (can take a few minutes)
+# Default credentials: admin / admin
+```
+
+Default admin credentials:
+- Username: `admin`
+- Password: `admin`
+
+The Alfresco API will be available at: `http://localhost:8082/alfresco/api`
+
+### Environment Variables
+
+Set these environment variables for testing:
+
+```bash
+export ALFRESCO_HOST=http://localhost:8082/alfresco
+export ALFRESCO_USERNAME=admin
+export ALFRESCO_PASSWORD=admin
+```
+
 ## Installation
 
 ### From NPM
@@ -101,6 +131,18 @@ There are no analytics gathered upon the use of the tool. However, the author re
 -   Bindu Wavell ([binduwavell](https://github.com/binduwavell))
 
 ## Version History
+
+-   **Development** - Current
+
+    -   **Security:** Removed hardcoded credentials, now uses environment variables (`ALFRESCO_HOST`, `ALFRESCO_USERNAME`, `ALFRESCO_PASSWORD`)
+    -   **Bug Fix:** Fixed `cacheResults` Array.push() bug (was returning length instead of array)
+    -   **Bug Fix:** Added try-catch around all JSON.parse calls
+    -   **Bug Fix:** Fixed broken error handling anti-patterns
+    -   **Code Quality:** Removed all @ts-ignore directives
+    -   **Config:** Enabled webpack production mode via `NODE_ENV`
+    -   **Config:** Enabled strict TypeScript mode
+    -   **Dependencies:** Updated @alfresco/js-api to ^7.0.0, resolved 76 security vulnerabilities
+    -   **Testing:** Added Docker Compose for local Alfresco testing
 
 -   1.4 - 20181106
 

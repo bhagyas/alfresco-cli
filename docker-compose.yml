@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  alfresco:
+    image: alfresco/alfresco-content-services-community:7.4.0
+    mem_limit: 3g
+    environment:
+      JAVA_OPTS: "
+        -DAlfresco.security.ticket.enabled=false
+        -Dshare.enabled=true
+        -Dalfresco.host=localhost
+        -Dalfresco.protocol=http
+        "
+      CATALINA_OPTS: "
+        -Xms1g -Xmx2g
+        "
+    ports:
+      - "8082:8080"
+    volumes:
+      - alfresco-data:/opt/alfresco-community/alf_data
+    networks:
+      - alfresco-net
+
+volumes:
+  alfresco-data:
+
+networks:
+  alfresco-net:
+    driver: bridge
