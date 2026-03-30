@@ -1,9 +1,19 @@
 {
   "compilerOptions": {
     "outDir": "./bin",
-    "allowJs": true,
-    "target": "es5",
-    "lib": ["es2015"]
+    "allowJs": false,
+    "target": "es2015",
+    "lib": [
+      "es2015"
+    ],
+    "types": [
+      "node",
+      "jest"
+    ],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "./src/**/*"

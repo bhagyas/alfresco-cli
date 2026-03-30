@@ -1,8 +1,10 @@
 const webpack = require('webpack');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
-    mode: "development",
-    devtool: "inline-source-map",
+    mode: isProduction ? "production" : "development",
+    devtool: isProduction ? false : "inline-source-map",
     entry: "./src/index.ts",
     target: "node",
     output: {
